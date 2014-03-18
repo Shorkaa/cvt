@@ -44,6 +44,7 @@ using namespace cvt;
 		simd->op( p1, p2, p3, n );																	\
 		for( size_t i = 0; i < TESTSIZE; i++ ) {                                                    \
 			if( Math::abs( p1[ i ] - ( p2[ i ] op2 p3[ i ] ) ) > Math::EPSILONF ) {					\
+                std::cout << "[ "<< i << " ] : " << p1[ i ] << " <-> " << ( p2[ i ] op2 p3[ i ] ) << std::endl;					\
 				fail = true;																		\
 				break;																				\
 			}																						\
@@ -82,62 +83,62 @@ using namespace cvt;
 static bool _hammingTest()
 {
     bool result = true;
-    
+
     const size_t num = 15684;
     uint8_t vecA[ num ], vecB[ num ];
     srand( time( NULL ) );
-    
+
     // initialize the arrays:
     for( size_t i = 0; i < num; i++ ){
-        vecA[ i ] = ( uint8_t )rand();        
+        vecA[ i ] = ( uint8_t )rand();
     }
-    
-      
+
+
     SIMDType bestType = SIMD::bestSupportedType();
-    for (int st = SIMD_BASE; st <= bestType; st++) {        
-        
+    for (int st = SIMD_BASE; st <= bestType; st++) {
+
         SIMD* simd = SIMD::get((SIMDType) st);
 
         for( size_t i = 0; i < num; i++ ){
             vecB[ i ] = vecA[ i ];
         }
-        
-        
+
+
         // first test should return 0:
         uint64_t expectedResult = 0;
-        
+
         bool tRes = true;
-        
-        size_t bitdistance = simd->hammingDistance( vecA, vecB, num );            
+
+        size_t bitdistance = simd->hammingDistance( vecA, vecB, num );
         tRes &= ( bitdistance == expectedResult );
-        
+
         if( tRes == false ){
             std::cout << "Expected Result: " << expectedResult << ", Bit distance: " << bitdistance << std::endl;
         }
-        
+
         for( size_t i = 0; i < num * 8; i++ ){
             // invert the bit bits
             size_t bucket = i >> 3;
             size_t mask = 1 << ( i & 0x7 );
             vecB[ bucket ] ^= mask;
             expectedResult += 1;
-            
-            size_t bitdistance = simd->hammingDistance( vecA, vecB, num );            
-            tRes &= ( bitdistance == expectedResult );           
-            
+
+            size_t bitdistance = simd->hammingDistance( vecA, vecB, num );
+            tRes &= ( bitdistance == expectedResult );
+
             if( tRes == false ){
                 std::cout << "Expected Result: " << expectedResult << ", Bit distance: " << bitdistance << std::endl;
             }
         }
-        
+
         result &= tRes;
         CVTTEST_PRINT( "HammingDistance " + simd->name() + ": ", tRes );
-        
+
         delete simd;
     }
-    
-    
-    
+
+
+
     return result;
 }
 
@@ -189,7 +190,7 @@ static bool _projectTest()
 	for( size_t i = 0; i < result.size(); i++ ){
 		if( result[ i ] != gtProjected[ i ] ){
 			testResult = false;
-			std::cout << "Error: 3D: " << pts3d[ i ] << ", True: " << gtProjected[ i ] << " Simd: " << result[ i ] << std::endl;			
+			std::cout << "Error: 3D: " << pts3d[ i ] << ", True: " << gtProjected[ i ] << " Simd: " << result[ i ] << std::endl;
 		}
 	}
 
@@ -262,7 +263,7 @@ static void _NCCTest( float* src1, float* src2, size_t n )
 	}
 	mean1 /= (float) n;
 	mean2 /= (float) n;
-	
+
 	float var1 = 0.0f;
 	float var2 = 0.0f;
 	float sum = 0.0f;
@@ -271,12 +272,12 @@ static void _NCCTest( float* src1, float* src2, size_t n )
 		var1 += Math::sqr( src1[ i ] - mean1 );
 		var2 += Math::sqr( src2[ i ] - mean2 );
 	}
-	
+
 	var1 /= (float) n;
 	var2 /= (float) n;
-	
+
 	float reference = sum / ( (float) n * Math::sqrt( var1 * var2 ) );
-    
+
 	SIMDType bestType = SIMD::bestSupportedType( );
 	for( int st = SIMD_BASE; st <= bestType; st++ ) {
 		SIMD* simd = SIMD::get( ( SIMDType ) st );
@@ -298,6 +299,7 @@ static void _NCCTest( float* src1, float* src2, size_t n )
 	}
 	delete[] constval;
 }
+
 
 BEGIN_CVTTEST( simd )
 		float* fdst;
@@ -332,10 +334,10 @@ BEGIN_CVTTEST( simd )
 		delete[] fsrc1;
 		delete[] fsrc2;
 #undef TESTSIZE
-                
+
         bool testResult = _hammingTest();
         CVTTEST_PRINT( "HammingDistance", testResult );
-        
+
 		testResult = _projectTest();
         CVTTEST_PRINT( "Project Points 3d->2d", testResult );
 
@@ -382,7 +384,7 @@ BEGIN_CVTTEST( simd )
 			std::cout << simd->name() << " Mul "  << t  << " ms" << std::endl;
 			delete simd;
 		}
-            
+
         for( int st = SIMD_BASE; st <= bestType; st++ ) {
             SIMD* simd = SIMD::get( ( SIMDType ) st );
             t = 0;
@@ -395,7 +397,7 @@ BEGIN_CVTTEST( simd )
             std::cout << simd->name() << " MulAdd "  << t  << " ms" << std::endl;
             delete simd;
         }
-            
+
         for( int st = SIMD_BASE; st <= bestType; st++ ) {
             SIMD* simd = SIMD::get( ( SIMDType ) st );
             t = 0;
@@ -499,6 +501,7 @@ BEGIN_CVTTEST( simd )
 			std::cout << simd->name() << " SAD float "  << t  << " ms" << std::endl;
 			delete simd;
 		}
+
 		for( int st = SIMD_BASE; st <= bestType; st++ ) {
 			SIMD* simd = SIMD::get( ( SIMDType ) st );
 			t = 0;
@@ -512,6 +515,25 @@ BEGIN_CVTTEST( simd )
 			delete simd;
 		}
 
+		for( int st = SIMD_BASE; st <= bestType; st++ ) {
+			SIMD* simd = SIMD::get( ( SIMDType ) st );
+            Matrix4f mat = Matrix4f(1,0,0,0,
+                                    0,1,0,0,
+                                    0,0,1,0,
+                                    0,0,0,1);
+			t = 0;
+
+			for( int iter = 0; iter < 100; iter++ ) {
+				tmr.reset();
+				simd->colorTransformation( fsrc1, fsrc2, mat, TESTSIZE>>2 );
+				t += tmr.elapsedMilliSeconds();
+			}
+			t /= 100.0;
+			std::cout << simd->name() << " colorTransformation(RGBA) "  << t << " ms" << std::endl;
+			delete simd;
+		}
+
+        t = 0;
         uint8_t * usrc0 = new uint8_t[ TESTSIZE ];
         for( int x = 0; x < TESTSIZE; x++ )
             usrc0[ x ] = Math::max( x, 255 );
@@ -536,7 +558,7 @@ BEGIN_CVTTEST( simd )
 			SIMD* simd = SIMD::get( ( SIMDType ) st );
 			t = 0;
 			tmr.reset();
-			for( int iter = 0; iter < 100; iter++ ) {				
+			for( int iter = 0; iter < 100; iter++ ) {
 				simd->SAD( udst, usrc0, TESTSIZE );
 			}
 			t += tmr.elapsedMilliSeconds();
@@ -545,12 +567,12 @@ BEGIN_CVTTEST( simd )
 			delete simd;
 		}
 		delete[] usrc0;
-		delete[] udst;	
-			
+		delete[] udst;
+
 		delete[] fdst;
 		delete[] fsrc1;
-		delete[] fsrc2;            
-            
+		delete[] fsrc2;
+
         uint8_t * ham0 = new uint8_t[ TESTSIZE ];
         uint8_t * ham1 = new uint8_t[ TESTSIZE ];
         size_t ref = 0;
@@ -559,13 +581,13 @@ BEGIN_CVTTEST( simd )
             t = 0;
             tmr.reset();
             size_t pcount;
-            for( int iter = 0; iter < 100; iter++ ) {				
+            for( int iter = 0; iter < 100; iter++ ) {
                 pcount = simd->hammingDistance( ham0, ham1, TESTSIZE );
             }
             t += tmr.elapsedMilliSeconds();
             t /= 100.0;
             std::cout << simd->name() << " HAMMING DISTANCE "  << t  << " ms" << std::endl;
-            
+
             if( st == SIMD_BASE ) {
                 ref = pcount;
             } else {
@@ -574,13 +596,13 @@ BEGIN_CVTTEST( simd )
                 }
             }
 
-            
+
             delete simd;
         }
         delete[] ham0;
         delete[] ham1;
-        
-#undef TESTSIZE       
+
+#undef TESTSIZE
 
 		return true;
 	END_CVTTEST

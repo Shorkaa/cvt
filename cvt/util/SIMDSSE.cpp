@@ -606,7 +606,54 @@ SSE_ACOP1_AOP2_FLOAT( MulSubValue1f, _mm_mul_ps, *, _mm_sub_ps, - )
 		}
 	}
 
+/*
+    void SIMDSSE::colorTransformation(float* dst, const float* src, const Matrix4f& mat, const size_t width) const
+    {
+        __m128 matT[ 4 ], x, sumR, sumG, sumB, r, g, b, a, alphaMask;
+        matT[ 0 ] = _mm_loadu_ps( ( ( const float* ) mat.ptr() ) );
+        matT[ 1 ] = _mm_loadu_ps( ( ( const float* ) mat.ptr() ) + 4 );
+        matT[ 2 ] = _mm_loadu_ps( ( ( const float* ) mat.ptr() ) + 8 );
+        matT[ 3 ] = _mm_loadu_ps( ( ( const float* ) mat.ptr() ) + 12 );
 
+		_MM_TRANSPOSE4_PS( matT[ 0 ], matT[ 1 ], matT[ 2 ], matT[ 3 ] );
+        alphaMask = _mm_set_ps(NAN,0,0,0);
+#define MM_REPLICATE( xmm, pos ) ( __m128 ) _mm_shuffle_epi32( ( __m128i ) xmm, ( ( (pos) << 6) | ( ( pos ) << 4) | ( ( pos ) << 2) | ( pos ) ) )
+
+		if( ( ( size_t ) dst | ( size_t ) src ) & 0xF ) {
+            for(int i=0;i<width;i++){
+                x = _mm_loadu_ps(src);
+                r = MM_REPLICATE(x,0);
+                b = MM_REPLICATE(x,1);
+                g = MM_REPLICATE(x,2);
+                sumR = _mm_mul_ps(r, matT[0]);
+                sumG = _mm_mul_ps(g, matT[1]);
+                sumB = _mm_mul_ps(b, matT[2]);
+                x = _mm_and_ps(x, alphaMask);
+                x = _mm_add_ps(_mm_add_ps(_mm_add_ps(sumR,sumG),sumB),x);
+                _mm_storeu_ps(dst, x);
+                src+=4;
+                dst+=4;
+            }
+		}
+		else {
+            for(int i=0;i<width;i++){
+                x = _mm_load_ps(src);
+                r = MM_REPLICATE(x,0);
+                b = MM_REPLICATE(x,1);
+                g = MM_REPLICATE(x,2);
+                sumR = _mm_mul_ps(r, matT[0]);
+                sumG = _mm_mul_ps(g, matT[1]);
+                sumB = _mm_mul_ps(b, matT[2]);
+                x = _mm_and_ps(x, alphaMask);
+                x = _mm_add_ps(_mm_add_ps(_mm_add_ps(sumR,sumG),sumB),x);
+                _mm_stream_ps(dst, x);
+                src+=4;
+                dst+=4;
+            }
+		}
+
+    }
+*/
 	void SIMDSSE::warpLinePerspectiveBilinear4f( float* dst, const float* _src, size_t srcStride, size_t srcWidth, size_t srcHeight, const float* point, const float* normal, const size_t n ) const
 	{
 		const uint8_t* src = ( const uint8_t* ) _src;

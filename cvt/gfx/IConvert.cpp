@@ -23,12 +23,15 @@
 */
 
 #include <cvt/gfx/IConvert.h>
+#include <cvt/gfx/IMapScoped.h>
 #include <cvt/gfx/Image.h>
+#include <cvt/gfx/IMatrix.h>
 #include <cvt/util/SIMD.h>
+#include <cvt/util/ScopedBuffer.h>
 
 namespace cvt {
 
-#define LAST_FORMAT	( IFORMAT_UYVY_UINT8 )
+#define LAST_FORMAT	( IFORMAT_LAB_FLOAT )
 
 #define TABLE( table, source, dst ) table[ ( ( source ) - 1 ) * LAST_FORMAT + ( dst ) - 1 ]
 
@@ -908,6 +911,78 @@ namespace cvt {
         sourceImage.unmap( osrc );
     }
 
+    void Conv_RGBA_to_LAB(Image & dstImage, const Image & sourceImage, IConvertFlags)
+    {
+        float C;
+        Matrix4f mat = IMatrix::XYZconversionMatrix();
+        SIMD* simd = SIMD::instance();
+        Image tmpImage2(sourceImage);
+        Image tmpImage(sourceImage.width(), sourceImage.height(),IFormat::LAB_FLOAT);
+        IMapScoped<float> maptmp( tmpImage );
+        IMapScoped<float> maptmp2( tmpImage2 );
+        IMapScoped<float> mapdst( dstImage );
+        IMapScoped<const float> mapsrc( sourceImage );
+//        std::cout << mat << std::endl;
+        for(int i;i<mapsrc.height();i++){
+//            std::cout <<"Src(RGB): "<< *mapsrc.ptr()<< " " << *(mapsrc.ptr()+1) << " "<< *(mapsrc.ptr()+2) << " "<< *(mapsrc.ptr()+3) << std::endl;
+            for(int j=0;j < mapsrc.width()*4;j++){
+                if((j+1)%4) //make sure we do not mess up the alpha value
+                {
+                    C = *(mapsrc.ptr() + j);
+                    if ( C > 0.04045){
+                        C = Math::pow((( C + 0.055 ) / 1.055 ),2.4);
+                    }
+                    else{
+                        C = C / 12.92;
+                    }
+                    *(maptmp2.ptr()+j) = C;
+                }
+            }
+//            std::cout << "RGBycorr: "<<*maptmp2.ptr()<< " " << *(maptmp2.ptr()+1) << " "<< *(maptmp2.ptr()+2) << " "<< *(maptmp2.ptr()+3) << std::endl;
+            simd->colorTransformation(maptmp.ptr(), maptmp2.ptr(), mat, mapsrc.width());
+//            std::cout << "XYZ: "<<*maptmp.ptr()<< " " << *(maptmp.ptr()+1) << " "<< *(maptmp.ptr()+2) << " "<< *(maptmp.ptr()+3) << std::endl;
+            simd->XYZ_to_LAB_Transformation(mapdst.ptr(), maptmp.ptr(), mapsrc.width());
+//            std::cout << "LAB: "<<*mapdst.ptr()<< " " << *(mapdst.ptr()+1) << " "<< *(mapdst.ptr()+2) << " "<< *(mapdst.ptr()+3) << std::endl;
+            mapsrc++;
+            mapdst++;
+            maptmp++;
+        }
+    }
+
+    void Conv_LAB_to_RGBA(Image & dstImage, const Image & sourceImage, IConvertFlags)
+    {
+        float C;
+        Matrix4f mat = IMatrix::invXYZconversionMatrix();
+        SIMD* simd = SIMD::instance();
+        Image tmpImage(sourceImage.width(), sourceImage.height(),IFormat::RGBA_FLOAT);
+        IMapScoped<float> mapdst( dstImage );
+        IMapScoped<float> maptmp( tmpImage );
+        IMapScoped<const float> mapsrc( sourceImage );
+//        std::cout << "LAB_TO_RGBA"<<std::endl;
+        for(int i;i<mapsrc.height();i++){
+//            std::cout <<"LAB: "<< *mapsrc.ptr()<< " " << *(mapsrc.ptr()+1) << " "<< *(mapsrc.ptr()+2) << " "<< *(mapsrc.ptr()+3) << std::endl;
+            simd->LAB_to_XYZ_Transformation(maptmp.ptr(), mapsrc.ptr(), mapsrc.width());
+//            std::cout << "XYZ: "<<*maptmp.ptr()<< " " << *(maptmp.ptr()+1) << " "<< *(maptmp.ptr()+2) << " "<< *(maptmp.ptr()+3) << std::endl;
+            simd->colorTransformation(mapdst.ptr(), maptmp.ptr(), mat, mapsrc.width());
+//            std::cout << "RGB(pre-y): "<<*mapdst.ptr()<< " " << *(mapdst.ptr()+1) << " "<< *(mapdst.ptr()+2) << " "<< *(mapdst.ptr()+3) << std::endl;
+            for(int j=0;j < mapdst.width()*4;j++){
+                if((j+1)%4){
+                    C = *(mapdst.ptr() + j);
+                    if ( C > 0.0031308)
+                        C = 1.055 * Math::pow(C, (1 / 2.4)) - 0.055;
+                    else{
+                        C = 12.92 * C;
+                    }
+                    *(mapdst.ptr()+j) = C;
+                }
+            }
+//            std::cout << "RGB(post-y): "<<*mapdst.ptr()<< " " << *(mapdst.ptr()+1) << " "<< *(mapdst.ptr()+2) << " "<< *(mapdst.ptr()+3) << std::endl;
+            mapsrc++;
+            mapdst++;
+            maptmp++;
+        }
+    }
+
     IConvert::IConvert():
         _convertFuncs( 0 )
     {
@@ -967,6 +1042,7 @@ namespace cvt {
         TABLE( _convertFuncs, IFORMAT_RGBA_FLOAT, IFORMAT_BGRA_UINT8 )  = &Conv_XYZAf_to_ZYXAu8;
         TABLE( _convertFuncs, IFORMAT_RGBA_FLOAT, IFORMAT_BGRA_FLOAT )  = &Conv_XYZAf_to_ZYXAf;
         TABLE( _convertFuncs, IFORMAT_RGBA_FLOAT, IFORMAT_GRAY_FLOAT )  = &Conv_RGBAf_to_GRAYf;
+        TABLE( _convertFuncs, IFORMAT_RGBA_FLOAT, IFORMAT_LAB_FLOAT)    = &Conv_RGBA_to_LAB;
 
         /* BGRA_UINT8 TO X */
         TABLE( _convertFuncs, IFORMAT_BGRA_UINT8, IFORMAT_GRAY_UINT8 ) = &Conv_BGRAu8_to_GRAYu8;
@@ -1008,6 +1084,10 @@ namespace cvt {
         TABLE( _convertFuncs, IFORMAT_UYVY_UINT8, IFORMAT_RGBA_UINT8 ) = &Conv_UYVYu8_to_RGBAu8;
         TABLE( _convertFuncs, IFORMAT_UYVY_UINT8, IFORMAT_BGRA_UINT8 ) = &Conv_UYVYu8_to_BGRAu8;
         TABLE( _convertFuncs, IFORMAT_UYVY_UINT8, IFORMAT_GRAY_FLOAT ) = &Conv_UYVYu8_to_GRAYf;
+
+        /*  LAB to X*/
+        TABLE( _convertFuncs, IFORMAT_LAB_FLOAT, IFORMAT_RGBA_FLOAT ) = &Conv_LAB_to_RGBA;
+
     }
 
     const IConvert& IConvert::instance()
