@@ -34,6 +34,11 @@
 #include <cvt/math/Matrix.h>
 #include <cvt/math/Vector.h>
 
+//luminance Rec. 709
+#define lumaR 0.2126f
+#define lumaG 0.7152f
+#define lumaB 0.0722f
+
 namespace cvt {
     enum SIMDType {
         SIMD_BASE = 0,
@@ -154,7 +159,7 @@ namespace cvt {
             virtual size_t SAD( uint8_t const* src1, uint8_t const* src2, const size_t n ) const;
 
             virtual float NCC( const float* src1, const float* src2, const size_t n ) const;
-            
+
             /* Infinite Impulse Response */
             /* IIR_#coefs_#pass_#direction_#channels_inputType */
             virtual void IIR4FwdHorizontal4Fx( Fixed* dst, const uint8_t * src, size_t width, const Fixed * n,
@@ -376,6 +381,9 @@ namespace cvt {
             virtual void projectPoints( Vector2f* dst, const Matrix4f& mat, const Vector3f* src, size_t n ) const;
             virtual void projectPoints( Vector2d* dst, const Matrix4d& mat, const Vector3d* src, size_t n ) const;
 
+            virtual void colorTransformation(float* dst, const float* src, const Matrix4f& mat, const size_t size) const;
+            virtual void XYZ_to_LAB_Transformation(float* dst, const float* src, const size_t size) const;
+            virtual void LAB_to_XYZ_Transformation(float* dst, const float* src, const size_t size) const;
             virtual std::string name() const;
             virtual SIMDType type() const;
 

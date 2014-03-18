@@ -738,6 +738,30 @@ namespace cvt {
         return ret;
     }
 
+    static inline float _XYZ_to_LAB(float value)
+    {
+        if(value > 0.008856451679035631) // if t > (6/29)**3
+        {
+            return Math::cbrt(value);
+        }
+        else
+        {
+            return (7.787037037037035 * value + 0.13793103448275862); //1/3 * (29/6)**2 * t + 4/29
+        }
+    }
+
+    static inline float _LAB_to_XYZ(float value)
+    {
+        if(value > 0.20689655172413793) // t > 6/29
+        {
+            return Math::pow(value,3);
+        }
+        else
+        {
+            return (0.12841854934601665 * value - 0.017712903358071262); // 3* (6/29)**2 * (t-4/29)
+        }
+    }
+
     SIMD* SIMD::_simd = 0;
 
     SIMD* SIMD::get( SIMDType type )
@@ -1255,29 +1279,29 @@ namespace cvt {
         float mean12 = 0.0f;
         float meanSqr1 = 0.0f;
         float meanSqr2 = 0.0f;
-        
+
         size_t i = n;
         while( i-- ) {
             float v1 = *src1++;
             float v2 = *src2++;
-            
+
             mean1 += v1;
             mean2 += v2;
             mean12 += v1 * v2;
             meanSqr1 += Math::sqr( v1 );
             meanSqr2 += Math::sqr( v2 );
         }
-        
+
         float nInv = 1.0f / (float) n;
         mean1 *= nInv;
         mean2 *= nInv;
         mean12 *= nInv;
         meanSqr1 *= nInv;
         meanSqr2 *= nInv;
-        
+
         float cov = mean12 - ( mean1 * mean2 );
         float var1var2 = ( meanSqr1 - Math::sqr( mean1 ) ) * ( meanSqr2 - Math::sqr( mean2 ) );
-        
+
         // Avoid division by zero
         if( var1var2 == 0.0f ) {
             var1var2 = Math::floatNext( 0.0f );
@@ -2278,9 +2302,9 @@ namespace cvt {
 
         while( i-- ) {
             tmp = *src++;
-            v = 0.2126f * SRGB_U8_TO_F( tmp & 0xff );
-            v += 0.7152f * SRGB_U8_TO_F( ( tmp >> 8 ) & 0xff );
-            v += 0.0722f * SRGB_U8_TO_F( ( tmp >> 16 ) & 0xff );
+            v = lumaR * SRGB_U8_TO_F( tmp & 0xff );
+            v += lumaG * SRGB_U8_TO_F( ( tmp >> 8 ) & 0xff );
+            v += lumaB * SRGB_U8_TO_F( ( tmp >> 16 ) & 0xff );
             *dst++ = v;
         }
     }
@@ -2291,9 +2315,9 @@ namespace cvt {
         float v;
 
         while( i-- ) {
-            v = 0.0722f * *src++;
-            v += 0.7152f * *src++;
-            v += 0.2126f * *src++;
+            v = lumaB * *src++;
+            v += lumaG * *src++;
+            v += lumaR * *src++;
             src++;
             *dst++ = v;
         }
@@ -2305,9 +2329,9 @@ namespace cvt {
         float v;
 
         while( i-- ) {
-            v = 0.2126f * *src++;
-            v += 0.7152f * *src++;
-            v += 0.0722f * *src++;
+            v = lumaR * *src++;
+            v += lumaG * *src++;
+            v += lumaB * *src++;
             src++;
             *dst++ = v;
         }
@@ -2322,9 +2346,9 @@ namespace cvt {
 
         while( i-- ) {
             tmp = *src++;
-            v = 0.2126f * SRGB_U8_TO_F( (tmp >> 16 ) & 0xff );
-            v += 0.7152f * SRGB_U8_TO_F( ( tmp >> 8 ) & 0xff );
-            v += 0.0722f * SRGB_U8_TO_F( ( tmp ) & 0xff );
+            v = lumaR * SRGB_U8_TO_F( (tmp >> 16 ) & 0xff );
+            v += lumaG * SRGB_U8_TO_F( ( tmp >> 8 ) & 0xff );
+            v += lumaB * SRGB_U8_TO_F( ( tmp ) & 0xff );
             *dst++ = v;
         }
     }
@@ -6203,6 +6227,79 @@ namespace cvt {
             dst++;
         }
     }
+
+    void SIMD::colorTransformation(float* dst, const float* src, const Matrix4f& mat, const size_t width) const
+    {
+        float sumR = 0;
+        float sumG = 0;
+        float sumB = 0;
+        for(size_t i=0;i < width;i++){ //pixels
+            for(size_t k=0;k < 3 ;k++){ //channels
+                sumR += mat[0][k] * *(i*4+src+k);
+                sumG += mat[1][k] * *(i*4+src+k);
+                sumB += mat[2][k] * *(i*4+src+k);
+            }
+
+            *dst++ = sumR + mat[0][3];
+            *dst++ = sumG + mat[1][3];
+            *dst++ = sumB + mat[2][3];
+            *dst++ = *(i*4+src+3);
+
+            sumR = 0;
+            sumG = 0;
+            sumB = 0;
+        }
+	}
+
+	void SIMD::XYZ_to_LAB_Transformation(float* dst, const float* src, const size_t size) const
+	{
+        float Xn, Yn, Zn, An, L, A, B;
+
+        Xn = 0.95047;
+        Yn = 1;
+        Zn = 1.08883;
+        An = 1;
+
+        for(int i=0;i < size>>2;i++)
+        {
+            L = 116 * _XYZ_to_LAB(*(src+1)) - 116; //src+1 = Y, should be Y / Yn, but omitted due to division by 1
+            A = 500 * (_XYZ_to_LAB((*src)/Xn) - _XYZ_to_LAB((*src+1)));
+            B = 200 * (_XYZ_to_LAB(*src+1) - _XYZ_to_LAB((*src+2)/Zn));
+
+            *dst++ = L;
+            *dst++ = A;
+            *dst++ = B;
+            *dst++ = *src+3;
+
+            src+=4;
+        }
+	}
+
+	void SIMD::LAB_to_XYZ_Transformation(float* dst, const float* src, const size_t size) const
+	{
+	    float Xn, Yn, Zn, An, X, Y, Z;
+
+        Xn = 0.95047;
+        Yn = 1;
+        Zn = 1.08883;
+        An = 1;
+
+        for(int i=0;i < size>>2;i++)
+        {
+            X = Xn * _LAB_to_XYZ((*src + 16)/116);
+            Y = Yn * _LAB_to_XYZ((*src + 16)/116) + *(src+1)/500;
+            Z = Zn * _LAB_to_XYZ((*src + 16)/116) - *(src+2)/200;
+
+            *dst++ = X;
+            *dst++ = Y;
+            *dst++ = Z;
+            *dst++ = *src+3;
+
+            src+=4;
+        }
+
+	}
+
 
     void SIMD::cleanup()
     {

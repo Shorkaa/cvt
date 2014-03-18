@@ -50,7 +50,7 @@ namespace cvt {
     const IFormat IFormat::BAYER_GBRG_UINT8		= FORMATDESC( 1, uint8_t	, IFORMAT_BAYER_GBRG_UINT8  , IFORMAT_TYPE_UINT8 );
 	const IFormat IFormat::YUYV_UINT8			= FORMATDESC( 2, uint8_t	, IFORMAT_YUYV_UINT8		, IFORMAT_TYPE_UINT8 );
 	const IFormat IFormat::UYVY_UINT8			= FORMATDESC( 2, uint8_t	, IFORMAT_UYVY_UINT8		, IFORMAT_TYPE_UINT8 );
-
+    const IFormat IFormat::LAB_FLOAT            = FORMATDESC( 4, float  	, IFORMAT_LAB_FLOAT 		, IFORMAT_TYPE_FLOAT );
 #undef FORMATDESC
 
 	IFormat::IFormat( const IFormat & f) :
@@ -86,7 +86,8 @@ namespace cvt {
             "BAYER_GRBG_UINT8",
             "BAYER_GBRG_UINT8",
 			"YUYV_UINT8",
-			"UYVY_UINT8"
+			"UYVY_UINT8",
+			"LAB_FLOAT"
 		};
 
 		out << "Format: " << _iformatstring[ f.formatID - 1 ];

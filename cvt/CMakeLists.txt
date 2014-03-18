@@ -1,6 +1,6 @@
 # add source, current source and binary dir to search for includes
-INCLUDE_DIRECTORIES( 
-	${CMAKE_SOURCE_DIR} 
+INCLUDE_DIRECTORIES(
+	${CMAKE_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR} )
 
 # build type should be set
@@ -97,8 +97,6 @@ SET( GLSL_SHADER
    gl/shader/150/basiclighttex_150.vert
    gl/shader/150/texmls_150.frag
    gl/shader/150/texmls_150.vert
-   gl/scene/shader/gls_default.frag
-   gl/scene/shader/gls_default.vert
 )
 
 SET( CL_KERNELS
@@ -231,7 +229,6 @@ SET( CVT_HEADERS
    gfx/IBoxFilter.h
    gfx/IFill.h
    gfx/IFormat.h
-   gfx/ICanny.h
    gfx/IColorCode.h
    gfx/IColorCodeMap.h
    gfx/IComponents.h
@@ -242,6 +239,9 @@ SET( CVT_HEADERS
    gfx/IThreshold.h
    gfx/ILoader.h
    gfx/ISaver.h
+   gfx/ifilter/AdaptiveThreshold.h
+   gfx/ifilter/Canny.h
+   gfx/ifilter/ColorCode.h
    gfx/ifilter/ROFDenoise.h
    gfx/ifilter/ROFFGPFilter.h
    gfx/ifilter/Homography.h
@@ -253,8 +253,12 @@ SET( CVT_HEADERS
    gfx/ifilter/BoxFilter.h
    gfx/ifilter/GuidedFilter.h
    gfx/ifilter/StereoGCVFilter.h
+   gfx/ifilter/Threshold.h
    gfx/ifilter/TVL1Flow.h
    gfx/ifilter/TVL1Stereo.h
+   gfx/ifilter/MorphErode.h
+   gfx/ifilter/MorphDilate.h
+#	gfx/ifilter/Sobel.h
    gfx/IFilter.h
    gfx/IScaleFilter.h
    gfx/ImageAllocator.h
@@ -304,14 +308,13 @@ SET( CVT_HEADERS
    gl/scene/GLSCamera.h
    gl/scene/GLSLight.h
    gl/scene/GLSMaterial.h
-   gl/scene/GLSTexture.h
    gl/scene/GLSRenderable.h
    gl/scene/GLSRenderableGroup.h
    gl/scene/GLSShader.h
+   gl/scene/GLSTransform.h
    gl/scene/GLSTransformable.h
    gl/scene/GLSVisitor.h
    gl/scene/GLScene.h
-   gl/scene/GLSShaderProgram.h
    gui/Application.h
    gui/BasicTimer.h
    gui/Button.h
@@ -443,6 +446,7 @@ SET( CVT_HEADERS
    util/PluginManager.h
    util/PluginFile.h
    util/internal/ParamTypes.def
+   vision/BinaryDescriptor.h
    vision/BoardDetector.h
    vision/CameraCalibration.h
    vision/ESM.h
@@ -460,7 +464,6 @@ SET( CVT_HEADERS
    vision/features/FeatureDescriptor.h
    vision/features/FeatureDescriptorExtractor.h
    vision/features/FeatureDetector.h
-   vision/features/FeatureMatch.h
    vision/features/FeatureSet.h
    vision/features/Harris.h
    vision/features/NMSFilter.h
@@ -573,6 +576,8 @@ SET( CVT_SOURCES
 	gfx/ImageTest.cpp
 	gfx/IMorphological.cpp
 	gfx/IThreshold.cpp
+	gfx/ifilter/AdaptiveThreshold.cpp
+	gfx/ifilter/ColorCode.cpp
 	gfx/ifilter/ROFDenoise.cpp
 	gfx/ifilter/ROFFGPFilter.cpp
 	gfx/ifilter/Homography.cpp
@@ -584,13 +589,18 @@ SET( CVT_SOURCES
 	gfx/ifilter/BoxFilter.cpp
 	gfx/ifilter/GuidedFilter.cpp
 	gfx/ifilter/StereoGCVFilter.cpp
+	gfx/ifilter/Threshold.cpp
 	gfx/ifilter/TVL1Flow.cpp
 	gfx/ifilter/TVL1Stereo.cpp
+	gfx/ifilter/MorphErode.cpp
+	gfx/ifilter/MorphDilate.cpp
+#	gfx/ifilter/Sobel.cpp
 	gfx/ImageAllocatorCL.cpp
 	gfx/ImageAllocatorGL.cpp
 	gfx/ImageAllocatorMem.cpp
 	gfx/IScaleFilter.cpp
 	gfx/IKernel.cpp
+	gfx/IMatrix.cpp
 	gfx/ColorspaceXYZ.cpp
 	geom/KDTreeTest.cpp
 	geom/MarchingCubes.cpp
@@ -619,12 +629,9 @@ SET( CVT_SOURCES
 	gl/progs/GLDrawTexModelProg.cpp
 	gl/progs/GLFillPathProg.cpp
 	gl/progs/GLTexMLSProg.cpp
-    gl/scene/GLScene.cpp
-    gl/scene/GLSShader.cpp
 	gl/scene/GLSVisitor.cpp
 	gl/scene/GLSRenderableGroup.cpp
 	gl/scene/GLSBaseModel.cpp
-    gl/scene/GLSShaderProgram.cpp
 	gui/Application.cpp
 	gui/BasicTimer.cpp
 	gui/Button.cpp
@@ -664,7 +671,7 @@ SET( CVT_SOURCES
 	math/Matrix.cpp
 	math/Polynomial.cpp
 	math/SE3Test.cpp
-	math/SL3Test.cpp
+#	math/SL3Test.cpp
 	math/Sim2Test.cpp
 	math/GA2Test.cpp
 	util/Data.cpp
@@ -825,7 +832,7 @@ OPTION( CVT_USE_OPENNI2 "Use OpenNI2" FALSE )
 IF( OpenNI2_FOUND AND CVT_USE_OPENNI2 )
     SET( CVT_HEADERS ${CVT_HEADERS} io/OpenNI2Camera.h )
     SET( CVT_SOURCES ${CVT_SOURCES} io/OpenNI2Camera.cpp )
-    INCLUDE_DIRECTORIES( BEFORE ${OpenNI2_INCLUDE_DIRS} )   
+    INCLUDE_DIRECTORIES( BEFORE ${OpenNI2_INCLUDE_DIRS} )
     SET( CVT_DEP_LIBRARIES ${CVT_DEP_LIBRARIES} ${OpenNI2_LIBRARIES} )
     ADD_DEFINITIONS( -DOpenNI2_FOUND )
    SET( CVT_HAS_OPENNI2 YES )
@@ -846,14 +853,14 @@ SET(CVT_ALL "${CVT_HEADERS}" "${CVT_SOURCES}")
 ADD_LIBRARY( cvt ${CVT_ALL} )
 SET( LIB_VERSION "${CVT_VERSION_MAJOR}.${CVT_VERSION_MINOR}.${CVT_VERSION_PATCH}" )
 SET_TARGET_PROPERTIES( cvt PROPERTIES VERSION "${LIB_VERSION}" )
-SET_TARGET_PROPERTIES( cvt PROPERTIES DEBUG_POSTFIX "_d")	
-SET_TARGET_PROPERTIES( cvt PROPERTIES ZEROOPT_POSTFIX "_d")	
+SET_TARGET_PROPERTIES( cvt PROPERTIES DEBUG_POSTFIX "_d")
+SET_TARGET_PROPERTIES( cvt PROPERTIES ZEROOPT_POSTFIX "_d")
 TARGET_LINK_LIBRARIES( cvt ${CVT_DEP_LIBRARIES} )
 ADD_DEPENDENCIES( cvt gen_version_file )
 
 #PREFIX hack for needed for Xcode and MVSC Projects
 IF( ${CMAKE_GENERATOR} MATCHES "Xcode" )
-	SET_TARGET_PROPERTIES( cvt PROPERTIES PREFIX "../")	
+	SET_TARGET_PROPERTIES( cvt PROPERTIES PREFIX "../")
 ENDIF()
 
 # lib install
@@ -864,15 +871,15 @@ GET_FILENAME_COMPONENT(folderName ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 foreach(HEADER_FILE ${CVT_HEADERS})
     STRING( REPLACE "${CMAKE_CURRENT_BINARY_DIR}/" "" CLEAN_HEADER ${HEADER_FILE} )
     GET_FILENAME_COMPONENT(pathName "${CLEAN_HEADER}" PATH)
-    INSTALL(FILES "${HEADER_FILE}" 
-			DESTINATION "include/${folderName}/${pathName}" 
+    INSTALL(FILES "${HEADER_FILE}"
+			DESTINATION "include/${folderName}/${pathName}"
 			COMPONENT Headers
 	)
 endforeach(HEADER_FILE)
 
 SET_TARGET_PROPERTIES( cvt
          PROPERTIES COMPILE_DEFINITIONS
-         PLUGIN_PATH="${CMAKE_BINARY_DIR}/bin/plugins/" 
+         PLUGIN_PATH="${CMAKE_BINARY_DIR}/bin/plugins/"
 )
 
 CVTTESTS(cvt cvt/util/cvttestsproto.h)
@@ -897,6 +904,8 @@ SET_SOURCE_FILES_PROPERTIES(util/SIMDSSE41.cpp PROPERTIES COMPILE_FLAGS "-mmmx -
 SET_SOURCE_FILES_PROPERTIES(util/SIMDSSE42.cpp PROPERTIES COMPILE_FLAGS "-mmmx -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2")
 SET_SOURCE_FILES_PROPERTIES(util/SIMDAVX.cpp PROPERTIES COMPILE_FLAGS "-mmmx -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx")
 SET_SOURCE_FILES_PROPERTIES(vision/features/FAST.cpp PROPERTIES COMPILE_FLAGS "-mmmx -msse -msse2")
+
+ADD_DEFINITIONS(-DCL_USE_DEPRECATED_OPENCL_1_1_APIS)
 
 # CVTConfig file for installation/package
 SET( CMAKE_INSTALL_PREFIX /usr )

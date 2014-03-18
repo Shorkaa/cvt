@@ -23,12 +23,15 @@
 */
 
 #include <cvt/gfx/IConvert.h>
+#include <cvt/gfx/IMapScoped.h>
 #include <cvt/gfx/Image.h>
+#include <cvt/gfx/IMatrix.h>
 #include <cvt/util/SIMD.h>
+#include <cvt/util/ScopedBuffer.h>
 
 namespace cvt {
 
-#define LAST_FORMAT	( IFORMAT_UYVY_UINT8 )
+#define LAST_FORMAT	( IFORMAT_LAB_FLOAT )
 
 #define TABLE( table, source, dst ) table[ ( ( source ) - 1 ) * LAST_FORMAT + ( dst ) - 1 ]
 
@@ -908,6 +911,46 @@ namespace cvt {
         sourceImage.unmap( osrc );
     }
 
+    void Conv_RGBA_to_LAB(Image & dstImage, const Image & sourceImage, IConvertFlags)
+    {
+        float Xn, Yn, Zn, An;
+
+        Matrix4f mat = IMatrix::XYZconversionMatrix();
+        SIMD* simd = SIMD::instance();
+
+        IMapScoped<float> mapdst( dstImage );
+        IMapScoped<const float> mapsrc( sourceImage );
+        ScopedBuffer <float,true>sbuf(mapsrc.width());
+
+        for(int i;i<mapsrc.height();i++){
+            float* ptr = sbuf.ptr();
+            simd->colorTransformation(ptr, mapsrc.ptr(), mat, mapsrc.width());
+            simd->XYZ_to_LAB_Transformation(mapdst.ptr(), ptr, mapsrc.width());
+            mapsrc++;
+            mapdst++;
+        }
+    }
+
+    void Conv_LAB_to_RGBA(Image & dstImage, const Image & sourceImage, IConvertFlags)
+    {
+        float Xn, Yn, Zn, An;
+
+        Matrix4f mat = IMatrix::invXYZconversionMatrix();
+        SIMD* simd = SIMD::instance();
+
+        IMapScoped<float> mapdst( dstImage );
+        IMapScoped<const float> mapsrc( sourceImage );
+        ScopedBuffer <float,true>sbuf(mapsrc.width());
+
+        for(int i;i<mapsrc.height();i++){
+            float* ptr = sbuf.ptr();
+            simd->LAB_to_XYZ_Transformation(mapdst.ptr(), ptr, mapsrc.width());
+            simd->colorTransformation(ptr, mapsrc.ptr(), mat, mapsrc.width());
+            mapsrc++;
+            mapdst++;
+        }
+    }
+
     IConvert::IConvert():
         _convertFuncs( 0 )
     {
@@ -967,6 +1010,7 @@ namespace cvt {
         TABLE( _convertFuncs, IFORMAT_RGBA_FLOAT, IFORMAT_BGRA_UINT8 )  = &Conv_XYZAf_to_ZYXAu8;
         TABLE( _convertFuncs, IFORMAT_RGBA_FLOAT, IFORMAT_BGRA_FLOAT )  = &Conv_XYZAf_to_ZYXAf;
         TABLE( _convertFuncs, IFORMAT_RGBA_FLOAT, IFORMAT_GRAY_FLOAT )  = &Conv_RGBAf_to_GRAYf;
+        TABLE( _convertFuncs, IFORMAT_RGBA_FLOAT, IFORMAT_LAB_FLOAT)    = &Conv_RGBA_to_LAB;
 
         /* BGRA_UINT8 TO X */
         TABLE( _convertFuncs, IFORMAT_BGRA_UINT8, IFORMAT_GRAY_UINT8 ) = &Conv_BGRAu8_to_GRAYu8;
