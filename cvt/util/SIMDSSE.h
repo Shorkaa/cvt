@@ -66,7 +66,7 @@ namespace cvt {
 													    const float* point, const float* normal, const size_t n ) const;
 
 			virtual void boxFilterPrefixSum1_f_to_f( float* dst, size_t dstride, const float* src, size_t srcstride, size_t width, size_t height, size_t boxwidth, size_t boxheight ) const;
-//			virtual void colorTransformation(float* dst, const float* src, const Matrix4f& mat, const size_t width) const;
+			virtual void colorTransformation(float* dst, const float* src, const Matrix4f& mat, const size_t width) const;
 
 			virtual std::string name() const;
 			virtual SIMDType type() const;

@@ -606,7 +606,7 @@ SSE_ACOP1_AOP2_FLOAT( MulSubValue1f, _mm_mul_ps, *, _mm_sub_ps, - )
 		}
 	}
 
-/*
+
     void SIMDSSE::colorTransformation(float* dst, const float* src, const Matrix4f& mat, const size_t width) const
     {
         __m128 matT[ 4 ], x, sumR, sumG, sumB, r, g, b, a, alphaMask;
@@ -616,6 +616,10 @@ SSE_ACOP1_AOP2_FLOAT( MulSubValue1f, _mm_mul_ps, *, _mm_sub_ps, - )
         matT[ 3 ] = _mm_loadu_ps( ( ( const float* ) mat.ptr() ) + 12 );
 
 		_MM_TRANSPOSE4_PS( matT[ 0 ], matT[ 1 ], matT[ 2 ], matT[ 3 ] );
+        for(int i=0;i<4;i++){
+            float v[4]; _mm_storeu_ps(v,matT[i]);
+            std::cout << v[0] << " | " << v[1] << " | " << v[2] << " | " << v[3] << std::endl;
+        }
         alphaMask = _mm_set_ps(NAN,0,0,0);
 #define MM_REPLICATE( xmm, pos ) ( __m128 ) _mm_shuffle_epi32( ( __m128i ) xmm, ( ( (pos) << 6) | ( ( pos ) << 4) | ( ( pos ) << 2) | ( pos ) ) )
 
@@ -651,9 +655,8 @@ SSE_ACOP1_AOP2_FLOAT( MulSubValue1f, _mm_mul_ps, *, _mm_sub_ps, - )
                 dst+=4;
             }
 		}
-
     }
-*/
+
 	void SIMDSSE::warpLinePerspectiveBilinear4f( float* dst, const float* _src, size_t srcStride, size_t srcWidth, size_t srcHeight, const float* point, const float* normal, const size_t n ) const
 	{
 		const uint8_t* src = ( const uint8_t* ) _src;
