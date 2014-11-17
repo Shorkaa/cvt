@@ -606,6 +606,7 @@ SSE_ACOP1_AOP2_FLOAT( MulSubValue1f, _mm_mul_ps, *, _mm_sub_ps, - )
 		}
 	}
 
+
 	void SIMDSSE::warpLinePerspectiveBilinear4f( float* dst, const float* _src, size_t srcStride, size_t srcWidth, size_t srcHeight, const float* point, const float* normal, const size_t n ) const
 	{
 		const uint8_t* src = ( const uint8_t* ) _src;
