@@ -738,27 +738,27 @@ namespace cvt {
         return ret;
     }
 
-    static inline float _XYZ_to_LAB(float val)
+    static inline float _XYZ_to_LAB(float value)
     {
-        if(val > 0.008856451679f) // if t > (6/29)**3
+        if(value > 0.008856451679035631) // if t > (6/29)**3
         {
-            return Math::cbrt(val);
+            return Math::cbrt(value);
         }
         else
         {
-            return (7.78703703703f * val + 0.1379310344827f); //1/3 * (29/6)**2 * t + 4/29
+            return (7.787037037037035 * value + 0.13793103448275862); //1/3 * (29/6)**2 * t + 4/29
         }
     }
 
-    static inline float _LAB_to_XYZ(float val)
+    static inline float _LAB_to_XYZ(float value)
     {
-        if(val > 0.206896551f) // t > 6/29
+        if(value > 0.20689655172413793) // t > 6/29
         {
-            return Math::pow(val,3);
+            return Math::pow(value,3);
         }
         else
         {
-            return (0.128418549f * val - 0.0177129033f); // 3* (6/29)**2 * (t-4/29)
+            return (0.12841854934601665 * value - 0.017712903358071262); // 3* (6/29)**2 * (t-4/29)
         }
     }
 
@@ -6282,8 +6282,6 @@ namespace cvt {
             Y = Yn * _LAB_to_XYZ((*(src+i*4) + 16)/116);
             X = Xn * _LAB_to_XYZ(((*(src+i*4) + 16)/116) + *(src+i*4 +1)/500);
             Z = Zn * _LAB_to_XYZ(((*(src+i*4) + 16)/116) - *(src+i*4 +2)/200);
-
- //           std::cout << "X: "<< X << " Y: "<< Y << " Z: "<< Z << std::endl;
 
             *dst++ = X;
             *dst++ = Y;

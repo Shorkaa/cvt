@@ -922,9 +922,7 @@ namespace cvt {
         IMapScoped<float> maptmp2( tmpImage2 );
         IMapScoped<float> mapdst( dstImage );
         IMapScoped<const float> mapsrc( sourceImage );
-        std::cout << mat << std::endl;
         for(int i;i<mapsrc.height();i++){
-            std::cout <<"Src(RGB): "<< *mapsrc.ptr()<< " " << *(mapsrc.ptr()+1) << " "<< *(mapsrc.ptr()+2) << " "<< *(mapsrc.ptr()+3) << std::endl;
             for(int j=0;j < mapsrc.width()*4;j++){
                 if((j+1)%4) //make sure we do not mess up the alpha value
                 {
@@ -938,11 +936,8 @@ namespace cvt {
                     *(maptmp2.ptr()+j) = C;
                 }
             }
-            std::cout << "RGBycorr: "<<*maptmp2.ptr()<< " " << *(maptmp2.ptr()+1) << " "<< *(maptmp2.ptr()+2) << " "<< *(maptmp2.ptr()+3) << std::endl;
             simd->colorTransformation(maptmp.ptr(), maptmp2.ptr(), mat, mapsrc.width());
-            std::cout << "XYZ: "<<*maptmp.ptr()<< " " << *(maptmp.ptr()+1) << " "<< *(maptmp.ptr()+2) << " "<< *(maptmp.ptr()+3) << std::endl;
             simd->XYZ_to_LAB_Transformation(mapdst.ptr(), maptmp.ptr(), mapsrc.width());
-//            std::cout << "LAB: "<<*mapdst.ptr()<< " " << *(mapdst.ptr()+1) << " "<< *(mapdst.ptr()+2) << " "<< *(mapdst.ptr()+3) << std::endl;
             mapsrc++;
             mapdst++;
             maptmp++;
@@ -958,13 +953,9 @@ namespace cvt {
         IMapScoped<float> mapdst( dstImage );
         IMapScoped<float> maptmp( tmpImage );
         IMapScoped<const float> mapsrc( sourceImage );
-//        std::cout << "LAB_TO_RGBA"<<std::endl;
         for(int i;i<mapsrc.height();i++){
-//            std::cout <<"LAB: "<< *mapsrc.ptr()<< " " << *(mapsrc.ptr()+1) << " "<< *(mapsrc.ptr()+2) << " "<< *(mapsrc.ptr()+3) << std::endl;
             simd->LAB_to_XYZ_Transformation(maptmp.ptr(), mapsrc.ptr(), mapsrc.width());
-//            std::cout << "XYZ: "<<*maptmp.ptr()<< " " << *(maptmp.ptr()+1) << " "<< *(maptmp.ptr()+2) << " "<< *(maptmp.ptr()+3) << std::endl;
             simd->colorTransformation(mapdst.ptr(), maptmp.ptr(), mat, mapsrc.width());
-//            std::cout << "RGB(pre-y): "<<*mapdst.ptr()<< " " << *(mapdst.ptr()+1) << " "<< *(mapdst.ptr()+2) << " "<< *(mapdst.ptr()+3) << std::endl;
             for(int j=0;j < mapdst.width()*4;j++){
                 if((j+1)%4){
                     C = *(mapdst.ptr() + j);
@@ -976,7 +967,6 @@ namespace cvt {
                     *(mapdst.ptr()+j) = C;
                 }
             }
-//            std::cout << "RGB(post-y): "<<*mapdst.ptr()<< " " << *(mapdst.ptr()+1) << " "<< *(mapdst.ptr()+2) << " "<< *(mapdst.ptr()+3) << std::endl;
             mapsrc++;
             mapdst++;
             maptmp++;

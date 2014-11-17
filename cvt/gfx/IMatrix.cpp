@@ -37,25 +37,15 @@ Matrix4f IMatrix::XYZconversionMatrix(){
                             0.2126, 0.7152, 0.0722, 0,
                             0.0193, 0.1192, 0.9505, 0,
                             0,      0,      0,      1);
-/*
-    Matrix4f mat = Matrix4f(0.4124, 0.2126, 0.0193, 0,
-                            0.3576, 0.7152, 0.1192, 0,
-                            0.1805, 0.0722, 0.9505, 0,
-                            0,      0,      0,      1);*/
     return mat;
 }
 
 Matrix4f IMatrix::invXYZconversionMatrix(){
+    //values according to CIE standards for converting XYZ to RGB
     Matrix4f mat = Matrix4f( 3.2406, -1.5372, -0.4986,   0,
                             -0.9689,  1.8758,  0.0415,   0,
                              0.0557, -0.2040,  1.0570,   0,
                              0,       0,       0,        1);
-                             /*
-    Matrix4f mat = Matrix4f( 3.2406, -0.9689,  0.0557,   0,
-                            -1.5372,  1.8758, -0.2040,   0,
-                            -0.4986,  0.0415,  1.0570,   0,
-                             0,       0,       0,        1);
-                             */
     return mat;
 }
 
@@ -70,6 +60,5 @@ void IMatrix::colorTransform(Image& dst, const Image& src, const Matrix4f& mat){
         mapsrc++;
         mapdst++;
     }
-
 }
 
